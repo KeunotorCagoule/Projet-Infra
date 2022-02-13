@@ -5,27 +5,30 @@
 Pour ce projet, nous avons décider de monter une plateforme de streaming audio grâce au service nommé Funkwhale.
 
 ## Sommaire
+
 - [Setup users + groups](#setup-users--groups)
 - [Sécurisation basique du VPS](#sécurisation-basique-du-vps)
-    - [Mise à jour du système](#mise-à-jour-du-système)
-    - [SSH](#ssh)
-        - [Modifications du port SSH](#modifications-du-port-ssh)
-        - [Désactivation de l’accès au serveur via l’utilisateur root](#désactivation-de-l'accès-au-serveur-via-l'utilisateur-root)
-    - [Installation + Config de Fail2ban](#installation--config-de-fail2ban)
-    - [Firewall](#firewall)
+  - [Mise à jour du système](#mise-à-jour-du-système)
+  - [SSH](#ssh)
+    - [Modifications du port SSH](#modifications-du-port-ssh)
+    - [Désactivation de l’accès au serveur via l’utilisateur root](#désactivation-de-l'accès-au-serveur-via-l'utilisateur-root)
+  - [Installation + Config de Fail2ban](#installation--config-de-fail2ban)
+  - [Firewall](#firewall)
 - [Docker](#docker)
   - [Setup du repo](#setup-du-repo)
   - [Install de Docker Engine](#install-de-docker-engine)
   - [Install de Docker Compose](#install-de-docker-compose)
 - [Hostname](#hostname)
-- [Certificat SSL](#certificat-ssl)
+- [Certificat TLS](#certificat-tls)
 - [Funkwhale](#funkwhale)
+- [Reverse Proxy](#reverse-proxy)
 
 ## Setup users + groups
 
 Après avoir acheté la machine virtuelle, nous commençons par créer un utilisateur chacun ainsi qu'un groupe pour ceux-ci afin d'être dans les *sudoers*.
 
 On commence donc par créer le groupe et vérifions qu'il est bel et bien créer dans le fichier contenant tout les groupes existant sur la machine :
+
 ```sh
 # Create a group
 $ sudo groupadd admin
@@ -56,19 +59,23 @@ sudo:x:27:debian,gabriel,alexis,roxanne
 
 ```
 
-
 ## Sécurisation basique du VPS
+
 ### Mise à jour du système
 
 On commence la sécurisation de la machine en la mettant à jour :
+
 ```sh
-$ sudo apt-get update
-$ sudo apt-get upgrade
+sudo apt-get update
+sudo apt-get upgrade
 ```
 
 ### SSH
+
 #### Modifications du port SSH
+
 Afin d'éviter un maximum d'attaques sur le SSH, nous changeont sont port :
+
 ```sh
 # Show the port of the SSH server
 $ grep Port /etc/ssh/sshd_config
@@ -86,11 +93,13 @@ $ systemctl restart sshd
 ```
 
 Pour se connecter nous devrons donc faire :
+
 ```sh
-$ ssh username@ip -p 51356
+ssh username@ip -p 51356
 ```
 
 #### Désactivation de l’accès au serveur via l’utilisateur root
+
 Toujours sur le SSH, on désactive l'accès à distance de l'utilisateur 'root', qui pour rappel, possède tout les droits sur la machine.
 
 ```sh
@@ -106,10 +115,13 @@ $systemctl restart sshd
 ```
 
 ### Installation + Config de Fail2ban
+
 Ensuite nous installons et configurons le service [Fail2ban](https://doc.ubuntu-fr.org/fail2ban).
 
-> Fail2ban est une application qui analyse les logs de divers services (SSH, Apache, FTP…) en cherchant des correspondances entre des motifs définis dans ses filtres et les entrées des logs.<br />
-> Lorsqu'une correspondance est trouvée une ou plusieurs actions sont exécutées. <br/>
+> Fail2ban est une application qui analyse les logs de divers services (SSH, Apache, FTP…) en cherchant des correspondances entre des motifs définis dans ses filtres et les entrées des logs
+>
+> Lorsqu'une correspondance est trouvée une ou plusieurs actions sont exécutées.
+>
 > Typiquement, fail2ban cherche des tentatives répétées de connexions infructueuses dans les fichiers journaux et procède à un bannissement en ajoutant une règle au pare-feu iptables ou nftables pour bannir l'adresse IP de la source.
 
 ```sh
@@ -128,11 +140,12 @@ Status
 ```
 
 ### Firewall
+
 Maintenant, nous mettons en place le firewall.
-<br />
+
 Pour notre projet, nous avons besoin d'autoriser les ports :
 
-- 443 => Port par défaut pour un serveur web sécurisé (= https) grâce à un certificat SSL.
+- 443 => Port par défaut pour un serveur web sécurisé (= https) grâce à un certificat TLS.
 - 51356 => Port custom pour la connexion au serveur SSH
 
 Dans notre cas, le service **firewalld** est déjà installé.
@@ -159,11 +172,10 @@ $ sudo systemctl enable firewalld
 
 Docker est :
 
-
 ### Setup du repo
 
-<br />
 On commence par installer les packages nécessaires à `apt` pour utiliser un repo par HTTPS
+
 ```sh
 $ sudo apt-get install \
   ca-certificates \
@@ -175,7 +187,7 @@ $ sudo apt-get install \
 On ajoute la clé GPG officielle de Docker
 
 ```sh
-$ curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 ```
 
 On setup le repo **stable**
@@ -191,14 +203,14 @@ $ echo \
 On installe maintenant Docker Engine
 
 ```sh
-$ sudo apt-get install docker-ce docker-ce-cli containerd.io
+sudo apt-get install docker-ce docker-ce-cli containerd.io
 ```
 
 On vérifie ensuite son installation
 > Cette commande télécharge une image test et l'éxécute dans un container. Quand il tourne, il affiche un message et s'éteint.
 
 ```sh
-$ sudo docker run hello-world
+sudo docker run hello-world
 ```
 
 ### Install de Docker Compose
@@ -206,8 +218,9 @@ $ sudo docker run hello-world
 Pour installer Funkwhale, il est nécessaire d'installer également Docker Compose qui est un outils permettant de définir et de partager des applications multi-containers.
 
 On commence donc par le télécharger
+
 ```sh
-$ sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 ```
 
 On ajoute les permissions d'exécution sur le binaire:
@@ -224,8 +237,9 @@ docker-compose version 1.29.2, build 1110ad01
 ```
 
 ## Hostname
+
 Maintenant que le site est en place, on change le hostname de la machine afin d'accéder au site par le hostname au lieu de l'adresse IP de la machine.
-<br />
+
 Le hostname que nous avons pris gratuitement sur [No-IP](https://noip.com) est [https://husic.servebeer.com/](https://husic.servebeer.com/).
 
 ```sh
@@ -243,66 +257,91 @@ Puis lorsqu'on redémarre la machine on vérifie son application en faisant:
 host husic.servebeer.com
 ```
 
-## Certificat SSL
-
-<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>
-
 ## Funkwhale
 
 Pour installer et configurer Funkwhale, nous commençons par exporter la version que l'on souhaite utiliser:
 
 ```sh
-$ export FUNKWHALE_VERSION="1.2.2
+export FUNKWHALE_VERSION="1.2.2"
 ```
 
 On télécharge les config de docker-compose par défaut:
 
 ```sh
-$ mkdir /srv/funkwhale
-$ cd /srv/funkwhale
-$ mkdir nginx
+mkdir /srv/funkwhale
+cd /srv/funkwhale
+mkdir nginx
 
-$ curl -L -o nginx/funkwhale.template "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker.nginx.template"
+curl -L -o nginx/funkwhale.template "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker.nginx.template"
 
-$ curl -L -o nginx/funkwhale_proxy.conf "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker.funkwhale_proxy.conf"
+curl -L -o nginx/funkwhale_proxy.conf "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker.funkwhale_proxy.conf"
 
-$ curl -L -o docker-compose.yml "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker-compose.yml"
+curl -L -o docker-compose.yml "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker-compose.yml"
 ```
 
 On créer un fichier d'environnement `.env`
 
 ```sh
-$ curl -L -o .env "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/env.prod.sample"
+curl -L -o .env "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/env.prod.sample"
 
-$ sed -i "s/FUNKWHALE_VERSION=latest/FUNKWHALE_VERSION=$FUNKWHALE_VERSION/" .env
+sed -i "s/FUNKWHALE_VERSION=latest/FUNKWHALE_VERSION=$FUNKWHALE_VERSION/" .env
 
-$ chmod 600 .env
+chmod 600 .env
 
-$ sudo nano .env
+sudo nano .env
 ```
 
 Ensuite, on récupère les images requises:
 
 ```sh
-$ docker-compose pull
+docker-compose pull
 ```
 
 On lance le container de la BDD et la migration initiale
 
 ```sh
-$ docker-compose up -d postgres
+docker-compose up -d postgres
 
-$ docker-compose run --rm api python manage.py migrate
+docker-compose run --rm api python manage.py migrate
 ```
 
 Puis nous créons un utilisateur funkwhale admin:
 
 ```sh
-$ docker-comose run --rm api python manage.py createsuperuser
+docker-comose run --rm api python manage.py createsuperuser
 ```
 
 Puis nous lançons funkwhale dans son entièretée:
 
 ```sh
-$ docker-comose up -d
+docker-comose up -d
+```
+
+## Reverse Proxy
+
+DEF
+
+Pour installer le Reverse Proxy, nous exécutons ces commandes :
+
+On télécharge les fichiers requis
+
+```sh
+curl -L -o /etc/nginx/funkwhale_proxy.conf "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/|version|/deploy/funkwhale_proxy.conf"
+
+curl -L -o /etc/nginx/sites-available/funkwhale.template "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/|version|/deploy/docker.proxy.template"
+```
+
+On créer une config nginx finale en utilisant la template basée sur le fichier d'environnement
+
+```sh
+set -a && source /srv/funkwhale/.env && set +a
+envsubst "`env | awk -F = '{printf \" $%s\", $$1}'`" \
+    < /etc/nginx/sites-available/funkwhale.template \
+    > /etc/nginx/sites-available/funkwhale.conf
+```
+
+Puis finalement, on active la config finale:
+
+```sh
+ln -s /etc/nginx/sites-available/funkwhale.conf /etc/nginx/sites-enabled/
 ```
