@@ -22,6 +22,7 @@ Pour ce projet, nous avons décider de monter une plateforme de streaming audio 
 - [Certificat TLS](#certificat-tls)
 - [Funkwhale](#funkwhale)
 - [Reverse Proxy](#reverse-proxy)
+- [Monitoring](#monitoring)
 
 ## Setup users + groups
 
@@ -343,5 +344,260 @@ envsubst "`env | awk -F = '{printf \" $%s\", $$1}'`" \
 Puis finalement, on active la config finale:
 
 ```sh
-ln -s /etc/nginx/sites-available/funkwhale.conf /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/funkwhale.conf /etc/nginx/sites-enabled/_u
+```
+
+## Monitoring
+
+Pour commencer, nous avons besoin de créer un nouvel utilisateur qui sera appelé `prometheus`:
+
+```sh
+sudo adduser prometheus
+
+Adding user 'prometheus' ...
+
+Adding new group 'prometheus' (1002) ...
+
+Adding new user 'prometheus' (1004) with group 'prometheus' ...
+
+Creating home directory '/home/prometheus' ...
+
+Copying files from '/etc/skel' ...
+
+New password: 
+
+Retype new password: 
+
+passwd: password updated successfully
+
+Changing the user information for prometheus
+
+Enter the new value, or press ENTER for the default
+
+    Full Name []: 
+
+    Room Number []: 
+
+    Work Phone []: 
+
+    Home Phone []: 
+
+    Other []: 
+
+Is the information correct? [Y/n] Y
+```
+
+Puis on l'ajoute au groupe docker pour qu'il puisse créer et lancer les containers prometheus
+
+```sh
+sudo adduser prometheus docker
+
+Adding user 'prometheus' to group 'docker' ...
+
+Adding user prometheus to group docker
+
+Done.
+```
+
+On se connecte à ce compte pour réaliser la config sous celui-ci
+
+```sh
+su prometheus
+```
+
+On créer un dossier de monitoring et un fichier de config dans celui-ci:
+
+```sh
+mkdir monitoring
+cd monitoring
+nano docker-compose.yml
+cat docker-compose.yml 
+
+version: '3'
+
+services:
+
+  prometheus:
+
+    image: prom/prometheus:latest
+
+    user: 1004:1004
+
+    container_name: prometheus
+
+    volumes:
+
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+      - ./prometheus_db:/var/lib/prometheus
+
+      - ./prometheus_db:/prometheus
+
+      - ./prometheus_db:/etc/prometheus
+
+      - ./alert.rules:/etc/prometheus/alert.rules
+
+    command:
+
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+      - '--web.route-prefix=/'
+
+      - '--storage.tsdb.retention.time=200h'
+
+      - '--web.enable-lifecycle'
+
+    restart: unless-stopped
+
+    ports:
+
+      - 127.0.0.1:9090:9090
+```
+
+Puis nous créons le fichier de config prometheus
+
+On notera qu'au fur et à mesure de la conf on continuera à modifier le MÊME fichier docker-compose
+
+On créer le dossier du container prometheus, on le lance et vérifions qu'il soit bien lancé
+
+```sh
+mkdir prometheus_db
+docker-compose up -d
+
+Recreating prometheus ... done
+
+docker ps
+
+CONTAINER ID   IMAGE                       COMMAND                  CREATED         STATUS         PORTS                                         NAMES
+
+d5161c50b263   prom/prometheus:latest      "/bin/prometheus --c…"   4 seconds ago   Up 3 seconds   0.0.0.0:9090->9090/tcp, :::9090->9090/tcp     prometheus
+
+123213f66681   nginx                       "/docker-entrypoint.…"   7 days ago      Up 7 days      127.0.0.1:5000->80/tcp                        funkwhale_nginx_1
+
+ea0d0b4a4e36   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   7 days ago      Up 7 days                                                    funkwhale_celeryworker_1
+
+b8f1f43d7014   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   7 days ago      Up 7 days      0.0.0.0:49156->5000/tcp, :::49156->5000/tcp   funkwhale_api_1
+
+6eb3577bbec9   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   7 days ago      Up 7 days                                                    funkwhale_celerybeat_1
+
+5916daa2d839   redis:5                     "docker-entrypoint.s…"   7 days ago      Up 7 days      6379/tcp                                      funkwhale_redis_1
+
+220e9671d2ec   postgres:11                 "docker-entrypoint.s…"   7 days ago      Up 7 days      5432/tcp                                      funkwhale_postgres_1
+```
+
+On ajoute ensuite dans la config du container ainsi que dans la conf prometheus :
+
+- Node Exporter : Récupération et exports des informations de la machine hôte
+- CAdvisor : Outils permettant de récupérer des informations sur l'installation docker qui tourne dessus
+- Grafana : outils permettant la génération de dashboards orienté data)àà
+
+```sh
+cat docker-compose.yml
+version: '3'
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    networks:
+      - default
+    user: "1004:1004"
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_db:/var/lib/prometheus
+      - ./prometheus_db:/prometheus
+      - ./prometheus_db:/etc/prometheus
+      - ./alert.rules:/etc/prometheus/alert.rules
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.route-prefix=/'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:9090:9090
+  node-exporter:
+    image: prom/node-exporter
+    networks:
+      - default
+    ports:
+      - 127.0.0.1:9100:9100
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    networks:
+      - default
+    container_name: cadvisor
+    ports:
+      - 127.0.0.1:8080:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+  grafana:
+    image: grafana/grafana
+    networks:
+      - default
+    ports:
+      - 127.0.0.1:3000:3000
+    restart: unless-stopped
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+
+volumes:
+  grafana-data:
+
+networks:
+  default:`
+```
+
+```sh
+nano prometheus.yml
+cat prometheus.yml
+
+global:
+  scrape_interval: 5s
+  external_labels:
+    monitor: 'prakash-monitor'
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['127.0.0.1:9090'] ## IP Address of the localhost
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['dc8863fc3534:9100']
+  - job_name: 'cAdvisor'
+    static_configs:
+      - targets: ['11722cd24d20:8080']
+```
+
+Puis nous relançons
+
+```sh
+docker-compose pull
+docker-compose down
+docker-compose up -d
+```
+
+On vérifie que tout va bien
+
+```sh
+docker ps
+CONTAINER ID   IMAGE                       COMMAND                  CREATED        STATUS                  PORTS                                         NAMES
+75b14c322f96   prom/prometheus:latest      "/bin/prometheus --c…"   33 hours ago   Up 32 hours             127.0.0.1:9090->9090/tcp                      prometheus
+97535a5e1b5b   grafana/grafana             "/run.sh"                33 hours ago   Up 32 hours             127.0.0.1:3000->3000/tcp                      monitoring_grafana_1
+11722cd24d20   gcr.io/cadvisor/cadvisor    "/usr/bin/cadvisor -…"   33 hours ago   Up 32 hours (healthy)   127.0.0.1:8080->8080/tcp                      cadvisor
+dc8863fc3534   prom/node-exporter          "/bin/node_exporter"     33 hours ago   Up 32 hours             127.0.0.1:9100->9100/tcp                      monitoring_node-exporter_1
+123213f66681   nginx                       "/docker-entrypoint.…"   8 days ago     Up 8 days
+     127.0.0.1:5000->80/tcp                        funkwhale_nginx_1
+ea0d0b4a4e36   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   8 days ago     Up 8 days
+                                                   funkwhale_celeryworker_1
+b8f1f43d7014   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   8 days ago     Up 8 days
+     0.0.0.0:49156->5000/tcp, :::49156->5000/tcp   funkwhale_api_1
+6eb3577bbec9   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   8 days ago     Up 8 days
+                                                   funkwhale_celerybeat_1
+5916daa2d839   redis:5                     "docker-entrypoint.s…"   8 days ago     Up 8 days
+     6379/tcp                                      funkwhale_redis_1
+220e9671d2ec   postgres:11                 "docker-entrypoint.s…"   8 days ago     Up 8 days
+     5432/tcp
 ```
