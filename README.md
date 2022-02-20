@@ -2,7 +2,7 @@
 
 > Projet réalisé par ROULLAND Roxanne, LAROUMANIE Gabriel et VASSEUR Alexis
 
-Pour ce projet, nous avons décider de monter une plateforme de streaming audio grâce au service nommé Funkwhale.
+Pour ce projet, nous avons décidé de monter une plateforme de streaming audio grâce au service nommé Funkwhale.
 
 ## Sommaire
 
@@ -28,13 +28,13 @@ Pour ce projet, nous avons décider de monter une plateforme de streaming audio 
 
 ## Prérequis
 
-Pour ce projet, nous avons utilisé un VPS (par soucis de budget) qui utilise Debian 11 avec 2Go de RAM, et 1 vCore
+Pour ce projet, nous avons utilisé un VPS (par soucis de budget) qui utilise Debian 11 avec 2Go de RAM, et 1 vCore.
 
 ## Setup users + groups
 
-Après avoir acheté la machine virtuelle, nous commençons par créer un utilisateur chacun ainsi qu'un groupe pour ceux-ci afin d'être dans les *sudoers*.
+Après avoir acheté la machine virtuelle, nous commençons par **nous** créer un utilisateur chacun ainsi qu'un groupe afin d'être dans les *sudoers*.
 
-On commence donc par créer le groupe et vérifions qu'il est bel et bien créer dans le fichier contenant tout les groupes existant sur la machine :
+On commence donc par créer le groupe et vérifions qu'il est bel et bien créé dans le fichier contenant tous les groupes existants sur la machine :
 
 ```sh
 # Create a group
@@ -44,7 +44,7 @@ $ grep admin /etc/group
 admin:x:1001:
 ```
 
-Ensuite nous créons donc les 3 utilisateur, nous vérifions qu'ils soient bien présent dans le fichiers contenant les utilisateurs.
+Ensuite nous créons donc les 3 utilisateurs, nous vérifions qu'ils sont bien présents dans le fichier contenant les utilisateurs.
 
 Puis nous les ajoutons dans le groupe précédement créé. Et nous incluons ces utilisateurs dans un second group nommé 'sudo' pour pouvoir utiliser la commande sudo.
 
@@ -81,7 +81,7 @@ sudo apt-get upgrade
 
 #### Modifications du port SSH
 
-Afin d'éviter un maximum d'attaques sur le SSH, nous changeont sont port :
+Afin d'éviter un maximum d'attaques sur le SSH, nous **changeons** **son** port :
 
 ```sh
 # Show the port of the SSH server
@@ -107,7 +107,7 @@ ssh username@ip -p 51356
 
 #### Désactivation de l’accès au serveur via l’utilisateur root
 
-Toujours sur le SSH, on désactive l'accès à distance de l'utilisateur 'root', qui pour rappel, possède tout les droits sur la machine.
+Toujours sur le SSH, on désactive l'accès à distance de l'utilisateur 'root', qui pour rappel, possède tous les droits sur la machine.
 
 ```sh
 # Edit the SSH config file
@@ -181,7 +181,7 @@ Docker est :
 
 ### Setup du repo
 
-On commence par installer les packages nécessaires à `apt` pour utiliser un repo par HTTPS
+On commence par installer les packages nécessaires à `apt` pour utiliser un repo par HTTPS.
 
 ```sh
 $ sudo apt-get install \
@@ -191,7 +191,7 @@ $ sudo apt-get install \
   lsb-release
 ```
 
-On ajoute la clé GPG officielle de Docker
+On ajoute la clé GPG officielle de Docker.
 
 ```sh
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -207,13 +207,13 @@ $ echo \
 
 ### Install de Docker Engine
 
-On installe maintenant Docker Engine
+On installe maintenant Docker Engine.
 
 ```sh
 sudo apt-get install docker-ce docker-ce-cli containerd.io
 ```
 
-On vérifie ensuite son installation
+On vérifie ensuite son installation.
 > Cette commande télécharge une image test et l'éxécute dans un container. Quand il tourne, il affiche un message et s'éteint.
 
 ```sh
@@ -222,9 +222,9 @@ sudo docker run hello-world
 
 ### Install de Docker Compose
 
-Pour installer Funkwhale, il est nécessaire d'installer également Docker Compose qui est un outils permettant de définir et de partager des applications multi-containers.
+Pour installer Funkwhale, il est nécessaire d'installer également Docker Compose qui est un outil permettant de définir et de partager des applications multi-containers.
 
-On commence donc par le télécharger
+On commence donc par le télécharger.
 
 ```sh
 sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -286,7 +286,7 @@ curl -L -o nginx/funkwhale_proxy.conf "https://dev.funkwhale.audio/funkwhale/fun
 curl -L -o docker-compose.yml "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/docker-compose.yml"
 ```
 
-On créer un fichier d'environnement `.env`
+On crée un fichier d'environnement `.env`.
 
 ```sh
 curl -L -o .env "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/${FUNKWHALE_VERSION}/deploy/env.prod.sample"
@@ -304,7 +304,7 @@ Ensuite, on récupère les images requises:
 docker-compose pull
 ```
 
-On lance le container de la BDD et la migration initiale
+On lance le container de la BDD et la migration initiale.
 
 ```sh
 docker-compose up -d postgres
@@ -318,7 +318,7 @@ Puis nous créons un utilisateur funkwhale admin:
 docker-comose run --rm api python manage.py createsuperuser
 ```
 
-Puis nous lançons funkwhale dans son entièretée:
+Puis nous lançons funkwhale dans son entièreté:
 
 ```sh
 docker-comose up -d
@@ -330,7 +330,7 @@ DEF
 
 Pour installer le Reverse Proxy, nous exécutons ces commandes :
 
-On télécharge les fichiers requis
+On télécharge les fichiers requis.
 
 ```sh
 curl -L -o /etc/nginx/funkwhale_proxy.conf "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/|version|/deploy/funkwhale_proxy.conf"
@@ -338,7 +338,7 @@ curl -L -o /etc/nginx/funkwhale_proxy.conf "https://dev.funkwhale.audio/funkwhal
 curl -L -o /etc/nginx/sites-available/funkwhale.template "https://dev.funkwhale.audio/funkwhale/funkwhale/raw/|version|/deploy/docker.proxy.template"
 ```
 
-On créer une config nginx finale en utilisant la template basée sur le fichier d'environnement
+On crée une config nginx finale en utilisant le template basé sur le fichier d'environnement
 
 ```sh
 set -a && source /srv/funkwhale/.env && set +a
@@ -350,7 +350,7 @@ envsubst "`env | awk -F = '{printf \" $%s\", $$1}'`" \
 Puis finalement, on active la config finale:
 
 ```sh
-ln -s /etc/nginx/sites-available/funkwhale.conf /etc/nginx/sites-enabled/_u
+ln -s /etc/nginx/sites-available/funkwhale.conf /etc/nginx/sites-enabled/
 ```
 
 > A partir d'ici, l'application est mise en place et fonctionnelle.
@@ -396,7 +396,7 @@ Enter the new value, or press ENTER for the default
 Is the information correct? [Y/n] Y
 ```
 
-Puis on l'ajoute au groupe docker pour qu'il puisse créer et lancer les containers prometheus
+Puis on l'ajoute au groupe docker pour qu'il puisse créer et lancer les containers prometheus.
 
 ```sh
 sudo adduser prometheus docker
@@ -408,13 +408,13 @@ Adding user prometheus to group docker
 Done.
 ```
 
-On se connecte à ce compte pour réaliser la config sous celui-ci
+On se connecte à ce compte pour réaliser la config sous celui-ci.
 
 ```sh
 su prometheus
 ```
 
-On créer un dossier de monitoring et un fichier de config dans celui-ci:
+On crée un dossier de monitoring et un fichier de config dans celui-ci:
 
 ```sh
 mkdir monitoring
@@ -463,11 +463,11 @@ services:
       - 127.0.0.1:9090:9090
 ```
 
-Puis nous créons le fichier de config prometheus
+Puis nous créons le fichier de config prometheus.
 
-On notera qu'au fur et à mesure de la conf on continuera à modifier le MÊME fichier docker-compose
+On notera qu'au fur et à mesure de la conf on continuera à modifier le MÊME fichier docker-compose.
 
-On créer le dossier du container prometheus, on le lance et vérifions qu'il soit bien lancé
+On crée le dossier du container prometheus, on le lance et vérifions qu'il soit bien lancé.
 
 ```sh
 mkdir prometheus_db
@@ -498,7 +498,7 @@ On ajoute ensuite dans la config du container ainsi que dans la conf prometheus 
 
 - Node Exporter : Récupération et exports des informations de la machine hôte
 - CAdvisor : Outils permettant de récupérer des informations sur l'installation docker qui tourne dessus
-- Grafana : outils permettant la génération de dashboards orienté data)àà
+- Grafana : outils permettant la génération de dashboards orienté data
 
 ```sh
 cat docker-compose.yml
@@ -526,6 +526,7 @@ services:
       - 127.0.0.1:9090:9090
   node-exporter:
     image: prom/node-exporter
+    container_name: node-exporter
     networks:
       - default
     ports:
@@ -574,13 +575,13 @@ scrape_configs:
       - targets: ['127.0.0.1:9090'] ## IP Address of the localhost
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['dc8863fc3534:9100']
+      - targets: ['node-exporter:9100']
   - job_name: 'cAdvisor'
     static_configs:
-      - targets: ['11722cd24d20:8080']
+      - targets: ['cadvisor:8080']
 ```
 
-Puis nous relançons
+Puis nous relançons.
 
 ```sh
 docker-compose pull
@@ -588,7 +589,7 @@ docker-compose down
 docker-compose up -d
 ```
 
-On vérifie que tout va bien
+On vérifie que tout va bien.
 
 ```sh
 docker ps
@@ -596,7 +597,7 @@ CONTAINER ID   IMAGE                       COMMAND                  CREATED     
 75b14c322f96   prom/prometheus:latest      "/bin/prometheus --c…"   33 hours ago   Up 32 hours             127.0.0.1:9090->9090/tcp                      prometheus
 97535a5e1b5b   grafana/grafana             "/run.sh"                33 hours ago   Up 32 hours             127.0.0.1:3000->3000/tcp                      monitoring_grafana_1
 11722cd24d20   gcr.io/cadvisor/cadvisor    "/usr/bin/cadvisor -…"   33 hours ago   Up 32 hours (healthy)   127.0.0.1:8080->8080/tcp                      cadvisor
-dc8863fc3534   prom/node-exporter          "/bin/node_exporter"     33 hours ago   Up 32 hours             127.0.0.1:9100->9100/tcp                      monitoring_node-exporter_1
+dc8863fc3534   prom/node-exporter          "/bin/node_exporter"     33 hours ago   Up 32 hours             127.0.0.1:9100->9100/tcp                      node-exporter
 123213f66681   nginx                       "/docker-entrypoint.…"   8 days ago     Up 8 days
      127.0.0.1:5000->80/tcp                        funkwhale_nginx_1
 ea0d0b4a4e36   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   8 days ago     Up 8 days
@@ -613,9 +614,9 @@ b8f1f43d7014   funkwhale/funkwhale:1.2.2   "./compose/django/en…"   8 days ago
 
 ## Backup
 
-Pour commencer la configuration d'un script de backup, nous devons créer un utilisateur nommé `autobackup`
+Pour commencer la configuration d'un script de backup, nous devons créer un utilisateur nommé `autobackup`.
 
-Les fichiers de backups seront placés dans `/home/autobackup/backupsdatabase/postgresql/`
+Les fichiers de backups seront placés dans `/home/autobackup/backupsdatabase/postgresql/`.
 
 ```sh
 sudo useradd autobackup
@@ -904,7 +905,7 @@ Group=admin
 WantedBy=multi-user.target
 ```
 
-Puis nous lançons le service et vérifions qu'il tourne bien
+Puis nous lançons le service et vérifions qu'il tourne bien.
 
 ```sh
 sudo systemctl start backup.service
